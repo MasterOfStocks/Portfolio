@@ -1,0 +1,34 @@
+# Stats bank collector — runs every ~20 minutes, day and night,
+# whether or not anyone has the site open.
+# Upload this file to the repo at the exact path:
+#   .github/workflows/collect.yml
+name: Collect stats
+
+on:
+  schedule:
+    - cron: "*/20 * * * *"
+  workflow_dispatch: {}      # adds a manual "Run workflow" button
+
+permissions:
+  contents: write
+
+concurrency:
+  group: collect
+  cancel-in-progress: false
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Fetch stats snapshot
+        run: node collect.js
+
+      - name: Commit history.json
+        run: |
+          git config user.name "stats-bot"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add history.json
+          git diff --cached --quiet || git commit -m "stats snapshot"
+          git push
